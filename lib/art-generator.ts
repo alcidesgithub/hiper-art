@@ -23,7 +23,22 @@ export interface Campanha {
   tamanho_selo_feed?: number
   tamanho_selo_story?: number
   tamanho_selo_a4?: number
+  altura_imagem_feed?: number
+  altura_imagem_story?: number
+  altura_imagem_a4?: number
+  espacamento_superior_feed?: number
+  espacamento_superior_story?: number
+  espacamento_superior_a4?: number
   created_at: string
+  tamanho_titulo_feed?: number
+  tamanho_descricao_feed?: number
+  tamanho_preco_feed?: number
+  tamanho_titulo_story?: number
+  tamanho_descricao_story?: number
+  tamanho_preco_story?: number
+  tamanho_titulo_a4?: number
+  tamanho_descricao_a4?: number
+  tamanho_preco_a4?: number
   updated_at: string
 }
 
@@ -179,15 +194,22 @@ export class ArtGenerator {
     console.log("✅ Cor de fundo aplicada:", corFundo)
   }
 
-  private breakTextEveryTwoWords(text: string): string[] {
+  private wrapText(text: string, maxWidth: number): string[] {
     const words = text.split(" ")
     const lines: string[] = []
+    let currentLine = words[0]
 
-    for (let i = 0; i < words.length; i += 2) {
-      const line = words.slice(i, i + 2).join(" ")
-      lines.push(line)
+    for (let i = 1; i < words.length; i++) {
+      const word = words[i]
+      const width = this.ctx.measureText(currentLine + " " + word).width
+      if (width < maxWidth) {
+        currentLine += " " + word
+      } else {
+        lines.push(currentLine)
+        currentLine = word
+      }
     }
-
+    lines.push(currentLine)
     return lines
   }
 
@@ -197,10 +219,10 @@ export class ArtGenerator {
     const centerX = this.canvas.width / 2
     const centerY = this.canvas.height / 2
 
-    // Configurações fixas para Feed
-    const titleFontSize = 65
-    const descriptionFontSize = 55
-    const priceFontSize = 70
+    // Configurações para Feed
+    const titleFontSize = campanha.tamanho_titulo_feed || 65
+    const descriptionFontSize = campanha.tamanho_descricao_feed || 55
+    const priceFontSize = campanha.tamanho_preco_feed || 70
     const seloMaxHeight = campanha.tamanho_selo_feed || 120
 
     // Cores da campanha
@@ -216,10 +238,11 @@ export class ArtGenerator {
     if (produto.imagem_url) {
       try {
         const img = await this.loadImage(produto.imagem_url)
-        const { height } = this.calculateImageDimensionsForFeed(img)
+        const maxHeight = campanha.altura_imagem_feed || 580 // Use configured height or default
+        const { height } = this.calculateImageDimensionsForFeed(img, maxHeight)
         imageHeight = height
         totalContentHeight += height
-        console.log("📸 Imagem do produto carregada:", { width: img.width, height: img.height })
+        console.log("📸 Imagem do produto carregada:", { width: img.width, height: img.height, usingMaxHeight: maxHeight })
       } catch (error) {
         console.error("❌ Erro ao carregar imagem do produto:", error, produto.imagem_url)
       }
@@ -231,9 +254,12 @@ export class ArtGenerator {
     const spacingAfterDescription = 30
 
     // Altura dos textos (estimativa)
-    const titleLines = this.breakTextEveryTwoWords(produto.nome)
+    this.ctx.font = `bold ${titleFontSize}px Arial`
+    const titleLines = this.wrapText(produto.nome, 900)
     const titleHeight = titleLines.length * titleFontSize * 1.2
-    const descriptionLines = produto.descricao ? this.breakTextEveryTwoWords(produto.descricao) : []
+
+    this.ctx.font = `${descriptionFontSize}px Arial`
+    const descriptionLines = produto.descricao ? this.wrapText(produto.descricao, 900) : []
     const descriptionHeight = descriptionLines.length * descriptionFontSize * 1.2
     const priceHeight = priceFontSize * 1.2
 
@@ -258,7 +284,8 @@ export class ArtGenerator {
       try {
         console.log("📥 Carregando imagem:", produto.imagem_url)
         const img = await this.loadImage(produto.imagem_url)
-        const { width, height } = this.calculateImageDimensionsForFeed(img)
+        const maxHeight = campanha.altura_imagem_feed || 580
+        const { width, height } = this.calculateImageDimensionsForFeed(img, maxHeight)
         const imageX = centerX - width / 2
         const imageY = currentY
 
@@ -267,7 +294,7 @@ export class ArtGenerator {
         console.log("✅ Imagem do produto desenhada com sucesso:", { width, height, imageX, imageY })
       } catch (error) {
         console.error("❌ Erro ao carregar imagem do produto:", {
-          error: error.message,
+          error: (error as Error).message,
           url: produto.imagem_url,
           produto: produto.nome,
         })
@@ -287,7 +314,7 @@ export class ArtGenerator {
     this.ctx.textAlign = "center"
     this.ctx.textBaseline = "top"
 
-    const titleLines2 = this.breakTextEveryTwoWords(produto.nome)
+    const titleLines2 = this.wrapText(produto.nome, 900)
     const lineHeight = titleFontSize * 1.2
     const titleCurrentY = currentY
 
@@ -303,7 +330,7 @@ export class ArtGenerator {
       this.ctx.fillStyle = corDescricao
       this.ctx.font = `${descriptionFontSize}px Arial`
 
-      const descriptionLines = this.breakTextEveryTwoWords(produto.descricao)
+      const descriptionLines = this.wrapText(produto.descricao, 900)
       const descLineHeight = descriptionFontSize * 1.2
       const descCurrentY = currentY
 
@@ -315,18 +342,9 @@ export class ArtGenerator {
       console.log("✅ Descrição desenhada com quebras:", descriptionLines)
     }
 
-    // Desenhar preço
-    this.ctx.fillStyle = corPreco
-    this.ctx.font = `bold ${priceFontSize}px Arial`
-    let precoTexto: string
-    if (typeof produto.preco === "number") {
-      precoTexto = `R$ ${produto.preco.toFixed(2).replace(".", ",")}`
-    } else {
-      const clean = produto.preco.toString().trim()
-      precoTexto = clean.startsWith("R") ? clean : `R$ ${clean}`
-    }
-    this.ctx.fillText(precoTexto, centerX, currentY)
-    console.log("✅ Preço desenhado:", precoTexto)
+    // Desenhar preço com R$ menor
+    // Desenhar preço complexo
+    this.drawComplexPrice(centerX, currentY, produto.preco, priceFontSize, corPreco)
 
     // Desenhar selo/logo da loja no canto superior direito (mantendo proporções)
     if (loja.selo_url && seloMaxHeight > 0) {
@@ -349,10 +367,10 @@ export class ArtGenerator {
     const centerX = this.canvas.width / 2
     const centerY = this.canvas.height / 2
 
-    // Configurações fixas para Story
-    const titleFontSize = 85
-    const descriptionFontSize = 80
-    const priceFontSize = 90
+    // Configurações para Story
+    const titleFontSize = campanha.tamanho_titulo_story || 85
+    const descriptionFontSize = campanha.tamanho_descricao_story || 80
+    const priceFontSize = campanha.tamanho_preco_story || 90
     const seloMaxHeight = campanha.tamanho_selo_story || 120
 
     // Cores da campanha
@@ -368,7 +386,8 @@ export class ArtGenerator {
     if (produto.imagem_url) {
       try {
         const img = await this.loadImage(produto.imagem_url)
-        const { height } = this.calculateImageDimensionsForStory(img)
+        const maxHeight = campanha.altura_imagem_story || 580 // Use configured height or default
+        const { height } = this.calculateImageDimensionsForStory(img, maxHeight)
         imageHeight = height
         totalContentHeight += height
         console.log("📸 Imagem do produto carregada:", { width: img.width, height: img.height })
@@ -383,9 +402,12 @@ export class ArtGenerator {
     const spacingAfterDescription = 45
 
     // Altura dos textos (estimativa)
-    const titleLines = this.breakTextEveryTwoWords(produto.nome)
+    this.ctx.font = `bold ${titleFontSize}px Arial`
+    const titleLines = this.wrapText(produto.nome, 900)
     const titleHeight = titleLines.length * titleFontSize * 1.2
-    const descriptionLines = produto.descricao ? this.breakTextEveryTwoWords(produto.descricao) : []
+
+    this.ctx.font = `${descriptionFontSize}px Arial`
+    const descriptionLines = produto.descricao ? this.wrapText(produto.descricao, 900) : []
     const descriptionHeight = descriptionLines.length * descriptionFontSize * 1.2
     const priceHeight = priceFontSize * 1.2
 
@@ -410,7 +432,8 @@ export class ArtGenerator {
       try {
         console.log("📥 Carregando imagem:", produto.imagem_url)
         const img = await this.loadImage(produto.imagem_url)
-        const { width, height } = this.calculateImageDimensionsForStory(img)
+        const maxHeight = campanha.altura_imagem_story || 580
+        const { width, height } = this.calculateImageDimensionsForStory(img, maxHeight)
         const imageX = centerX - width / 2
         const imageY = currentY
 
@@ -419,7 +442,7 @@ export class ArtGenerator {
         console.log("✅ Imagem do produto desenhada com sucesso:", { width, height, imageX, imageY })
       } catch (error) {
         console.error("❌ Erro ao carregar imagem do produto:", {
-          error: error.message,
+          error: (error as Error).message,
           url: produto.imagem_url,
           produto: produto.nome,
         })
@@ -439,7 +462,7 @@ export class ArtGenerator {
     this.ctx.textAlign = "center"
     this.ctx.textBaseline = "top"
 
-    const titleLines2 = this.breakTextEveryTwoWords(produto.nome)
+    const titleLines2 = this.wrapText(produto.nome, 900)
     const lineHeight = titleFontSize * 1.2
     const titleCurrentY = currentY
 
@@ -455,7 +478,7 @@ export class ArtGenerator {
       this.ctx.fillStyle = corDescricao
       this.ctx.font = `${descriptionFontSize}px Arial`
 
-      const descriptionLines = this.breakTextEveryTwoWords(produto.descricao)
+      const descriptionLines = this.wrapText(produto.descricao, 900)
       const descLineHeight = descriptionFontSize * 1.2
       const descCurrentY = currentY
 
@@ -467,18 +490,9 @@ export class ArtGenerator {
       console.log("✅ Descrição desenhada com quebras:", descriptionLines)
     }
 
-    // Desenhar preço
-    this.ctx.fillStyle = corPreco
-    this.ctx.font = `bold ${priceFontSize}px Arial`
-    let precoTexto: string
-    if (typeof produto.preco === "number") {
-      precoTexto = `R$ ${produto.preco.toFixed(2).replace(".", ",")}`
-    } else {
-      const clean = produto.preco.toString().trim()
-      precoTexto = clean.startsWith("R") ? clean : `R$ ${clean}`
-    }
-    this.ctx.fillText(precoTexto, centerX, currentY)
-    console.log("✅ Preço desenhado:", precoTexto)
+    // Desenhar preço com R$ menor
+    // Desenhar preço complexo
+    this.drawComplexPrice(centerX, currentY, produto.preco, priceFontSize, corPreco)
 
     // Desenhar selo/logo da loja no canto superior direito (mantendo proporções)
     if (loja.selo_url && seloMaxHeight > 0) {
@@ -501,10 +515,10 @@ export class ArtGenerator {
     const centerX = this.canvas.width / 2
     const centerY = this.canvas.height / 2
 
-    // Configurações fixas para A4
-    const titleFontSize = 40
-    const descriptionFontSize = 35
-    const priceFontSize = 50
+    // Configurações para A4
+    const titleFontSize = campanha.tamanho_titulo_a4 || 40
+    const descriptionFontSize = campanha.tamanho_descricao_a4 || 35
+    const priceFontSize = campanha.tamanho_preco_a4 || 50
     const seloMaxHeight = campanha.tamanho_selo_a4 || 80
 
     // Cores da campanha
@@ -520,7 +534,8 @@ export class ArtGenerator {
     if (produto.imagem_url) {
       try {
         const img = await this.loadImage(produto.imagem_url)
-        const { height } = this.calculateImageDimensionsForA4(img)
+        const maxHeight = campanha.altura_imagem_a4 || 355 // Use configured height or default
+        const { height } = this.calculateImageDimensionsForA4(img, maxHeight)
         imageHeight = height
         totalContentHeight += height
         console.log("📸 Imagem do produto carregada:", { width: img.width, height: img.height })
@@ -535,9 +550,12 @@ export class ArtGenerator {
     const spacingAfterDescription = 25
 
     // Altura dos textos (estimativa)
-    const titleLines = this.breakTextEveryTwoWords(produto.nome)
+    this.ctx.font = `bold ${titleFontSize}px Arial`
+    const titleLines = this.wrapText(produto.nome, 500)
     const titleHeight = titleLines.length * titleFontSize * 1.2
-    const descriptionLines = produto.descricao ? this.breakTextEveryTwoWords(produto.descricao) : []
+
+    this.ctx.font = `${descriptionFontSize}px Arial`
+    const descriptionLines = produto.descricao ? this.wrapText(produto.descricao, 500) : []
     const descriptionHeight = descriptionLines.length * descriptionFontSize * 1.2
     const priceHeight = priceFontSize * 1.2
 
@@ -562,7 +580,8 @@ export class ArtGenerator {
       try {
         console.log("📥 Carregando imagem:", produto.imagem_url)
         const img = await this.loadImage(produto.imagem_url)
-        const { width, height } = this.calculateImageDimensionsForA4(img)
+        const maxHeight = campanha.altura_imagem_a4 || 355
+        const { width, height } = this.calculateImageDimensionsForA4(img, maxHeight)
         const imageX = centerX - width / 2
         const imageY = currentY
 
@@ -571,7 +590,7 @@ export class ArtGenerator {
         console.log("✅ Imagem do produto desenhada com sucesso:", { width, height, imageX, imageY })
       } catch (error) {
         console.error("❌ Erro ao carregar imagem do produto:", {
-          error: error.message,
+          error: (error as Error).message,
           url: produto.imagem_url,
           produto: produto.nome,
         })
@@ -591,7 +610,7 @@ export class ArtGenerator {
     this.ctx.textAlign = "center"
     this.ctx.textBaseline = "top"
 
-    const titleLines2 = this.breakTextEveryTwoWords(produto.nome)
+    const titleLines2 = this.wrapText(produto.nome, 500)
     const lineHeight = titleFontSize * 1.2
     const titleCurrentY = currentY
 
@@ -607,7 +626,7 @@ export class ArtGenerator {
       this.ctx.fillStyle = corDescricao
       this.ctx.font = `${descriptionFontSize}px Arial`
 
-      const descriptionLines = this.breakTextEveryTwoWords(produto.descricao)
+      const descriptionLines = this.wrapText(produto.descricao, 500)
       const descLineHeight = descriptionFontSize * 1.2
       const descCurrentY = currentY
 
@@ -619,18 +638,9 @@ export class ArtGenerator {
       console.log("✅ Descrição desenhada com quebras:", descriptionLines)
     }
 
-    // Desenhar preço
-    this.ctx.fillStyle = corPreco
-    this.ctx.font = `bold ${priceFontSize}px Arial`
-    let precoTexto: string
-    if (typeof produto.preco === "number") {
-      precoTexto = `R$ ${produto.preco.toFixed(2).replace(".", ",")}`
-    } else {
-      const clean = produto.preco.toString().trim()
-      precoTexto = clean.startsWith("R") ? clean : `R$ ${clean}`
-    }
-    this.ctx.fillText(precoTexto, centerX, currentY)
-    console.log("✅ Preço desenhado:", precoTexto)
+    // Desenhar preço com R$ menor
+    // Desenhar preço complexo
+    this.drawComplexPrice(centerX, currentY, produto.preco, priceFontSize, corPreco)
 
     // Desenhar selo/logo da loja no canto superior direito (mantendo proporções)
     if (loja.selo_url && seloMaxHeight > 0) {
@@ -663,13 +673,12 @@ export class ArtGenerator {
     return { width, height }
   }
 
-  // Método específico para calcular dimensões no formato Feed
-  private calculateImageDimensionsForFeed(img: HTMLImageElement) {
+  private calculateImageDimensionsForFeed(img: HTMLImageElement, maxHeight: number) {
     const aspectRatio = img.width / img.height
 
     if (img.height > img.width) {
-      // Imagem retrato - altura máxima 580px
-      const height = Math.min(img.height, 580)
+      // Imagem retrato
+      const height = Math.min(img.height, maxHeight)
       const width = height * aspectRatio
       return { width, height }
     } else {
@@ -680,13 +689,12 @@ export class ArtGenerator {
     }
   }
 
-  // Método específico para calcular dimensões no formato Story
-  private calculateImageDimensionsForStory(img: HTMLImageElement) {
+  private calculateImageDimensionsForStory(img: HTMLImageElement, maxHeight: number) {
     const aspectRatio = img.width / img.height
 
     if (img.height > img.width) {
-      // Imagem retrato - altura máxima 580px
-      const height = Math.min(img.height, 580)
+      // Imagem retrato
+      const height = Math.min(img.height, maxHeight)
       const width = height * aspectRatio
       return { width, height }
     } else {
@@ -697,13 +705,12 @@ export class ArtGenerator {
     }
   }
 
-  // Método específico para calcular dimensões no formato A4
-  private calculateImageDimensionsForA4(img: HTMLImageElement) {
+  private calculateImageDimensionsForA4(img: HTMLImageElement, maxHeight: number) {
     const aspectRatio = img.width / img.height
 
     if (img.height > img.width) {
-      // Imagem retrato - altura máxima 355px
-      const height = Math.min(img.height, 355)
+      // Imagem retrato
+      const height = Math.min(img.height, maxHeight)
       const width = height * aspectRatio
       return { width, height }
     } else {
@@ -722,6 +729,85 @@ export class ArtGenerator {
       img.onerror = reject
       img.src = src
     })
+  }
+
+  // Novo método para desenhar preço complexo (Stack Cents)
+  private drawComplexPrice(centerX: number, currentY: number, price: string | number, fontSize: number, color: string) {
+    // 1. Format parts
+    let priceStr = ""
+    if (typeof price === "number") {
+      priceStr = price.toFixed(2).replace(".", ",")
+    } else {
+      priceStr = price.toString().trim().replace(/^R\$\s?/, "").trim()
+    }
+
+    const parts = priceStr.split(",")
+    const integerPart = parts[0]
+    // Centavos com vírgula antes (Ex: ",90")
+    const centsWithComma = "," + (parts.length > 1 ? parts[1] : "00")
+
+    // 2. Configure Sizes
+    const symbolSize = fontSize * 0.4
+    const integerSize = fontSize
+    const decimalSize = fontSize * 0.45 // Tamanho dos centavos e da vírgula
+    const suffixSize = fontSize * 0.3 // Tamanho do "cada"
+
+    // 3. Measure Widths
+    this.ctx.font = `bold ${symbolSize}px Arial`
+    const symbolWidth = this.ctx.measureText("R$").width
+
+    this.ctx.font = `bold ${integerSize}px Arial`
+    const integerWidth = this.ctx.measureText(integerPart).width
+
+    this.ctx.font = `bold ${decimalSize}px Arial`
+    const centsWidth = this.ctx.measureText(centsWithComma).width
+
+    this.ctx.font = `bold ${suffixSize}px Arial`
+    const suffixWidth = this.ctx.measureText("cada").width
+
+    const rightColumnWidth = Math.max(centsWidth, suffixWidth)
+
+    const padding = fontSize * 0.1
+    const totalWidth = symbolWidth + padding + integerWidth + padding + rightColumnWidth
+
+    // 4. Draw
+    const startX = centerX - (totalWidth / 2)
+    const baselineY = currentY + (integerSize * 0.85) // Linha de base principal
+
+    this.ctx.fillStyle = color
+    this.ctx.textAlign = "left"
+    this.ctx.textBaseline = "alphabetic"
+
+    let currentX = startX
+
+    // R$ - Base/Bottom aligned
+    this.ctx.font = `bold ${symbolSize}px Arial`
+    this.ctx.fillText("R$", currentX, baselineY)
+    currentX += symbolWidth + padding
+
+    // Integer - Baseline aligned
+    this.ctx.font = `bold ${integerSize}px Arial`
+    this.ctx.fillText(integerPart, currentX, baselineY)
+    currentX += integerWidth + padding
+
+    // Right Column
+    const columnStartX = currentX
+
+    // Centavos com vírgula (Ex: ",90") - Top aligned
+    // Centralizar na largura da coluna
+    const centsStartX = columnStartX + (rightColumnWidth - centsWidth) / 2
+    this.ctx.font = `bold ${decimalSize}px Arial`
+    // Alinhar o topo dos centavos com o topo do Inteiro
+    const centsBaselineY = currentY + (decimalSize * 0.85)
+    this.ctx.fillText(centsWithComma, centsStartX, centsBaselineY)
+
+    // Bottom Row: "cada" - Base/Bottom (Alinhado com a baseline do Inteiro)
+    // Centralizar "cada" na largura da coluna
+    const suffixStartX = columnStartX + (rightColumnWidth - suffixWidth) / 2
+    this.ctx.font = `bold ${suffixSize}px Arial`
+    this.ctx.fillText("cada", suffixStartX, baselineY)
+
+    console.log("✅ Preço complexo (R$ Base, Comma Base, Cents Top) desenhado:", priceStr)
   }
 
   private validateColor(color: string): string | null {

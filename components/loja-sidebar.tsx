@@ -1,5 +1,6 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { Palette, LogOut } from "lucide-react"
 import Link from "next/link"
 import { useRouter, usePathname } from "next/navigation"
@@ -35,7 +36,14 @@ export function LojaSidebar() {
     router.push("/")
   }
 
-  const lojaNome = typeof window !== "undefined" ? localStorage.getItem("lojaNome") || "Loja" : "Loja"
+  const [lojaNome, setLojaNome] = useState("Loja")
+
+  useEffect(() => {
+    const nome = localStorage.getItem("lojaNome")
+    if (nome) {
+      setLojaNome(nome)
+    }
+  }, [])
 
   return (
     <Sidebar>

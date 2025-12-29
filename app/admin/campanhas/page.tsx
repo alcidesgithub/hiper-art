@@ -48,8 +48,12 @@ interface FormDataState {
     a4: string
     feed_path: string
     story_path: string
+    story_path: string
     a4_path: string
   }
+  espacamento_superior_feed: number
+  espacamento_superior_story: number
+  espacamento_superior_a4: number
   tamanho_titulo_feed: number
   tamanho_descricao_feed: number
   tamanho_preco_feed: number
@@ -62,6 +66,9 @@ interface FormDataState {
   tamanho_selo_feed: number
   tamanho_selo_story: number
   tamanho_selo_a4: number
+  altura_imagem_feed: number
+  altura_imagem_story: number
+  altura_imagem_a4: number
 }
 
 export default function GerenciarCampanhas() {
@@ -98,6 +105,9 @@ export default function GerenciarCampanhas() {
       story_path: "",
       a4_path: "",
     },
+    espacamento_superior_feed: 0,
+    espacamento_superior_story: 0,
+    espacamento_superior_a4: 0,
     tamanho_titulo_feed: 65, // 65pt padrão para Feed
     tamanho_descricao_feed: 55, // 55pt padrão para Feed
     tamanho_preco_feed: 70, // 70pt padrão para Feed
@@ -110,6 +120,9 @@ export default function GerenciarCampanhas() {
     tamanho_selo_feed: 200,
     tamanho_selo_story: 200,
     tamanho_selo_a4: 120,
+    altura_imagem_feed: 580,
+    altura_imagem_story: 580,
+    altura_imagem_a4: 355,
   })
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -124,6 +137,9 @@ export default function GerenciarCampanhas() {
         status: formData.status,
         cores: formData.cores,
         fundos: formData.fundos,
+        espacamento_superior_feed: formData.espacamento_superior_feed,
+        espacamento_superior_story: formData.espacamento_superior_story,
+        espacamento_superior_a4: formData.espacamento_superior_a4,
         tamanho_titulo_feed: formData.tamanho_titulo_feed,
         tamanho_descricao_feed: formData.tamanho_descricao_feed,
         tamanho_preco_feed: formData.tamanho_preco_feed,
@@ -136,6 +152,9 @@ export default function GerenciarCampanhas() {
         tamanho_selo_feed: formData.tamanho_selo_feed,
         tamanho_selo_story: formData.tamanho_selo_story,
         tamanho_selo_a4: formData.tamanho_selo_a4,
+        altura_imagem_feed: formData.altura_imagem_feed,
+        altura_imagem_story: formData.altura_imagem_story,
+        altura_imagem_a4: formData.altura_imagem_a4,
       }
 
       let campanhaId: string
@@ -180,6 +199,9 @@ export default function GerenciarCampanhas() {
         story_path: "",
         a4_path: "",
       },
+      espacamento_superior_feed: 0,
+      espacamento_superior_story: 0,
+      espacamento_superior_a4: 0,
       tamanho_titulo_feed: 65, // 65pt padrão para Feed
       tamanho_descricao_feed: 55, // 55pt padrão para Feed
       tamanho_preco_feed: 70, // 70pt padrão para Feed
@@ -192,6 +214,9 @@ export default function GerenciarCampanhas() {
       tamanho_selo_feed: 200,
       tamanho_selo_story: 200,
       tamanho_selo_a4: 120,
+      altura_imagem_feed: 580,
+      altura_imagem_story: 580,
+      altura_imagem_a4: 355,
     })
     setProdutosExcel([])
     setUploadedImages([])
@@ -216,6 +241,9 @@ export default function GerenciarCampanhas() {
         story_path: campanha.fundos?.story_path || "",
         a4_path: campanha.fundos?.a4_path || "",
       },
+      espacamento_superior_feed: campanha.espacamento_superior_feed || 0,
+      espacamento_superior_story: campanha.espacamento_superior_story || 0,
+      espacamento_superior_a4: campanha.espacamento_superior_a4 || 0,
       tamanho_titulo_feed: campanha.tamanho_titulo_feed || 65, // 65pt padrão para Feed
       tamanho_descricao_feed: campanha.tamanho_descricao_feed || 55, // 55pt padrão para Feed
       tamanho_preco_feed: campanha.tamanho_preco_feed || 70, // 70pt padrão para Feed
@@ -228,6 +256,9 @@ export default function GerenciarCampanhas() {
       tamanho_selo_feed: campanha.tamanho_selo_feed || 200,
       tamanho_selo_story: campanha.tamanho_selo_story || 200,
       tamanho_selo_a4: campanha.tamanho_selo_a4 || 120,
+      altura_imagem_feed: campanha.altura_imagem_feed || 580,
+      altura_imagem_story: campanha.altura_imagem_story || 580,
+      altura_imagem_a4: campanha.altura_imagem_a4 || 355,
     })
     setIsDialogOpen(true)
   }
@@ -531,7 +562,24 @@ Tem certeza que deseja continuar?`
                     <div className="grid gap-6">
                       <div>
                         <h4 className="font-medium mb-3">Feed (1080x1350)</h4>
-                        <div className="grid grid-cols-3 gap-4">
+                        <div className="grid grid-cols-4 gap-4">
+                          <div>
+                            <Label htmlFor="margin-feed">Margem Top (px)</Label>
+                            <Input
+                              id="margin-feed"
+                              type="number"
+                              min="0"
+                              max="1000"
+                              value={formData.espacamento_superior_feed}
+                              onChange={(e) =>
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  espacamento_superior_feed: Number(e.target.value),
+                                }))
+                              }
+                            />
+                            <p className="text-xs text-muted-foreground mt-1">Espaço do topo</p>
+                          </div>
                           <div>
                             <Label htmlFor="titulo-feed">Título (pt)</Label>
                             <Input
@@ -583,12 +631,46 @@ Tem certeza que deseja continuar?`
                             />
                             <p className="text-xs text-muted-foreground mt-1">Padrão: 70pt</p>
                           </div>
+                          <div>
+                            <Label htmlFor="altura-feed">Altura Imagem (px)</Label>
+                            <Input
+                              id="altura-feed"
+                              type="number"
+                              min="100"
+                              max="1000"
+                              value={formData.altura_imagem_feed}
+                              onChange={(e) =>
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  altura_imagem_feed: Number(e.target.value),
+                                }))
+                              }
+                            />
+                            <p className="text-xs text-muted-foreground mt-1">Max: 580px</p>
+                          </div>
                         </div>
                       </div>
 
                       <div>
                         <h4 className="font-medium mb-3">Story (1080x1920)</h4>
-                        <div className="grid grid-cols-3 gap-4">
+                        <div className="grid grid-cols-4 gap-4">
+                          <div>
+                            <Label htmlFor="margin-story">Margem Top (px)</Label>
+                            <Input
+                              id="margin-story"
+                              type="number"
+                              min="0"
+                              max="1000"
+                              value={formData.espacamento_superior_story}
+                              onChange={(e) =>
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  espacamento_superior_story: Number(e.target.value),
+                                }))
+                              }
+                            />
+                            <p className="text-xs text-muted-foreground mt-1">Espaço do topo</p>
+                          </div>
                           <div>
                             <Label htmlFor="titulo-story">Título (pt)</Label>
                             <Input
@@ -640,12 +722,46 @@ Tem certeza que deseja continuar?`
                             />
                             <p className="text-xs text-muted-foreground mt-1">Padrão: 90pt</p>
                           </div>
+                          <div>
+                            <Label htmlFor="altura-story">Altura Imagem (px)</Label>
+                            <Input
+                              id="altura-story"
+                              type="number"
+                              min="100"
+                              max="1000"
+                              value={formData.altura_imagem_story}
+                              onChange={(e) =>
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  altura_imagem_story: Number(e.target.value),
+                                }))
+                              }
+                            />
+                            <p className="text-xs text-muted-foreground mt-1">Max: 580px</p>
+                          </div>
                         </div>
                       </div>
 
                       <div>
                         <h4 className="font-medium mb-3">A4 (595x842)</h4>
-                        <div className="grid grid-cols-3 gap-4">
+                        <div className="grid grid-cols-4 gap-4">
+                          <div>
+                            <Label htmlFor="margin-a4">Margem Top (px)</Label>
+                            <Input
+                              id="margin-a4"
+                              type="number"
+                              min="0"
+                              max="1000"
+                              value={formData.espacamento_superior_a4}
+                              onChange={(e) =>
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  espacamento_superior_a4: Number(e.target.value),
+                                }))
+                              }
+                            />
+                            <p className="text-xs text-muted-foreground mt-1">Espaço do topo</p>
+                          </div>
                           <div>
                             <Label htmlFor="titulo-a4">Título (pt)</Label>
                             <Input
@@ -696,6 +812,23 @@ Tem certeza que deseja continuar?`
                               }
                             />
                             <p className="text-xs text-muted-foreground mt-1">Padrão: 50pt</p>
+                          </div>
+                          <div>
+                            <Label htmlFor="altura-a4">Altura Imagem (px)</Label>
+                            <Input
+                              id="altura-a4"
+                              type="number"
+                              min="100"
+                              max="1000"
+                              value={formData.altura_imagem_a4}
+                              onChange={(e) =>
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  altura_imagem_a4: Number(e.target.value),
+                                }))
+                              }
+                            />
+                            <p className="text-xs text-muted-foreground mt-1">Max: 355px</p>
                           </div>
                         </div>
                       </div>

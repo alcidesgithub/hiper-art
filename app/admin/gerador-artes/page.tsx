@@ -42,7 +42,7 @@ export default function AdminGerarArte() {
   const [selectedArte, setSelectedArte] = useState<string | null>(null)
 
   const campanhaAtual = campanhas.find((c) => c.id === campanhaId && c.status === "ativa")
-  const lojaAtual = lojas.find((l) => l.id === lojaId && l.status === "ativa")
+  const lojaAtual = lojas.find((l) => l.id === lojaId)
 
   const {
     isGenerating,
@@ -61,24 +61,9 @@ export default function AdminGerarArte() {
 
   useEffect(() => {
     if (campanhaAtual?.tipo === "fixa") {
-      console.log("🔍 Carregando produtos da campanha fixa:", campanhaAtual.id)
       fetchProdutosByCampanha(campanhaAtual.id)
-        .then((produtosCarregados) => {
-          console.log("📦 Produtos carregados:", produtosCarregados)
-          console.log(
-            "🖼️ URLs das imagens:",
-            produtosCarregados.map((p) => ({
-              nome: p.nome,
-              imagem_url: p.imagem_url,
-              imagem_path: p.imagem_path,
-            })),
-          )
-          setProdutos(produtosCarregados)
-        })
-        .catch((err) => {
-          console.error("❌ Erro ao carregar produtos:", err)
-          setError(err.message)
-        })
+        .then(setProdutos)
+        .catch((err) => setError(err.message))
     }
   }, [campanhaAtual, fetchProdutosByCampanha])
 
@@ -115,7 +100,7 @@ export default function AdminGerarArte() {
 
     try {
       if (!lojaId || !campanhaAtual || !lojaAtual) {
-        throw new Error("Selecione uma campanha e uma loja")
+        throw new Error("Dados da sessão inválidos")
       }
 
       let produtosParaGerar: ProdutoData[] = []
@@ -125,26 +110,12 @@ export default function AdminGerarArte() {
         if (produtosSelecionadosData.length === 0) {
           throw new Error("Selecione pelo menos um produto")
         }
-
-        // Debug: verificar dados dos produtos selecionados
-        console.log("🎯 Produtos selecionados para geração:", produtosSelecionadosData)
-
-        produtosParaGerar = produtosSelecionadosData.map((p) => {
-          const produtoData = {
-            nome: p.nome,
-            descricao: p.descricao || "",
-            preco: p.preco,
-            imagem_url: p.imagem_url || undefined,
-          }
-
-          console.log("🔄 Mapeando produto:", {
-            original: p,
-            mapeado: produtoData,
-            temImagemUrl: !!produtoData.imagem_url,
-          })
-
-          return produtoData
-        })
+        produtosParaGerar = produtosSelecionadosData.map((p) => ({
+          nome: p.nome,
+          descricao: p.descricao,
+          preco: p.preco,
+          imagem_url: p.imagem_url,
+        }))
       } else {
         if (!produtoCustomizado.nome || !produtoCustomizado.preco) {
           throw new Error("Nome e preço do produto são obrigatórios")
@@ -158,8 +129,6 @@ export default function AdminGerarArte() {
           },
         ]
       }
-
-      console.log("🚀 Iniciando geração com produtos:", produtosParaGerar)
 
       // Gerar artes temporárias para download usando as configurações da campanha
       await generateArts(produtosParaGerar)
@@ -213,13 +182,12 @@ export default function AdminGerarArte() {
   }
 
   const campanhasAtivas = campanhas.filter((c) => c.status === "ativa")
-  const lojasAtivas = lojas.filter((l) => l.status === "ativa")
 
   return (
     <div className="p-6">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold">Gerador de Artes - Administrador</h1>
-        <p className="text-muted-foreground">Teste a geração de artes com diferentes campanhas e lojas</p>
+        <h1 className="text-3xl font-bold">Gerar Arte (Administrador)</h1>
+        <p className="text-muted-foreground">Crie materiais promocionais para qualquer loja</p>
       </div>
 
       {(error || generationError) && (
@@ -233,8 +201,8 @@ export default function AdminGerarArte() {
           <AlertDescription>
             <strong>Campanha Selecionada:</strong> {campanhaAtual.nome} -
             {campanhaAtual.tipo === "fixa"
-              ? " Produtos pré-definidos pelo administrador com configurações de layout personalizadas"
-              : " Configurações personalizadas de cores, fontes e layout serão aplicadas automaticamente"}
+              ? " Produtos pré-definidos"
+              : " Configurações personalizadas"}
           </AlertDescription>
         </Alert>
       )}
@@ -242,8 +210,8 @@ export default function AdminGerarArte() {
       <Alert className="mb-6">
         <Info className="h-4 w-4" />
         <AlertDescription>
-          <strong>Teste de Artes:</strong> Use esta ferramenta para testar como as campanhas ficam com diferentes lojas
-          antes de disponibilizar para os usuários.
+          <strong>Artes Temporárias:</strong> As artes são geradas apenas para download imediato. Baixe todas as artes
+          necessárias antes de sair da página.
         </AlertDescription>
       </Alert>
 
@@ -252,9 +220,9 @@ export default function AdminGerarArte() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Palette className="h-5 w-5" />
-              Configuração de Teste
+              Configuração
             </CardTitle>
-            <CardDescription>Selecione a campanha e loja para testar</CardDescription>
+            <CardDescription>Selecione a campanha e configure os produtos</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="space-y-2">
@@ -279,19 +247,16 @@ export default function AdminGerarArte() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="loja">Loja</Label>
+              <Label htmlFor="loja">Loja (Modo Administrador)</Label>
               <Select value={lojaId} onValueChange={setLojaId}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione uma loja" />
                 </SelectTrigger>
                 <SelectContent>
-                  {lojasAtivas.map((loja) => (
+                  {lojas.map((loja) => (
                     <SelectItem key={loja.id} value={loja.id}>
                       <div className="flex items-center gap-2">
-                        <span>{loja.nome}</span>
-                        <Badge variant="outline" className="text-xs">
-                          {loja.codigo}
-                        </Badge>
+                        {loja.nome}
                       </div>
                     </SelectItem>
                   ))}
@@ -350,20 +315,12 @@ export default function AdminGerarArte() {
                                 <div className="text-sm text-muted-foreground">{produto.descricao}</div>
                               )}
                               <div className="text-sm font-semibold text-green-600">{produto.preco}</div>
-                              {/* Debug: mostrar URL da imagem */}
-                              {produto.imagem_url && (
-                                <div className="text-xs text-blue-600 truncate max-w-xs">IMG: {produto.imagem_url}</div>
-                              )}
                             </div>
                             {produto.imagem_url ? (
                               <img
                                 src={produto.imagem_url || "/placeholder.svg"}
                                 alt={produto.nome}
                                 className="w-12 h-12 object-cover rounded"
-                                onError={(e) => {
-                                  console.error("❌ Erro ao carregar imagem do produto:", produto.imagem_url)
-                                  e.currentTarget.src = "/placeholder.svg"
-                                }}
                               />
                             ) : (
                               <div className="w-12 h-12 bg-gray-100 rounded flex items-center justify-center">
@@ -427,7 +384,7 @@ export default function AdminGerarArte() {
                         <div className="mt-2">
                           <ImageUpload
                             bucket="produtos"
-                            folder="admin-test"
+                            folder={`${localStorage.getItem("lojaId") || "temp"}`}
                             currentImageUrl={produtoCustomizado.imagem_url}
                             currentImagePath={produtoCustomizado.imagem_path}
                             onUploadComplete={handleImagemUpload}
@@ -469,7 +426,7 @@ export default function AdminGerarArte() {
                   ) : (
                     <>
                       <Palette className="mr-2 h-4 w-4" />
-                      Gerar Arte de Teste
+                      Gerar Arte
                     </>
                   )}
                 </Button>
@@ -481,7 +438,7 @@ export default function AdminGerarArte() {
         <Card>
           <CardHeader>
             <CardTitle>Resultado</CardTitle>
-            <CardDescription>Artes geradas para teste</CardDescription>
+            <CardDescription>Artes geradas para download</CardDescription>
           </CardHeader>
           <CardContent>
             {artesGeradas.length > 0 ? (
@@ -489,7 +446,7 @@ export default function AdminGerarArte() {
                 <Alert>
                   <Download className="h-4 w-4" />
                   <AlertDescription>
-                    <strong>{artesGeradas.length} artes geradas!</strong> Teste concluído com sucesso.
+                    <strong>{artesGeradas.length} artes geradas!</strong> Baixe todas as artes necessárias.
                     {campanhaAtual?.tipo === "fixa" && (
                       <span className="block mt-1 text-sm">
                         ✨ Usando configurações personalizadas da campanha: {campanhaAtual.nome}
@@ -620,7 +577,7 @@ export default function AdminGerarArte() {
             ) : (
               <div className="text-center py-12 text-muted-foreground">
                 <ImageIcon className="mx-auto h-12 w-12 mb-4 opacity-50" />
-                <p>Selecione uma campanha e loja para gerar as artes de teste</p>
+                <p>Selecione uma campanha e configure os produtos para gerar as artes</p>
                 <p className="text-xs mt-2">As artes serão geradas temporariamente para download</p>
               </div>
             )}

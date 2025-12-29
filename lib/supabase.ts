@@ -73,6 +73,9 @@ export interface Campanha {
   tamanho_selo_story?: number
   tamanho_selo_a4?: number
   margem_esquerda_feed?: number
+  altura_imagem_feed?: number
+  altura_imagem_story?: number
+  altura_imagem_a4?: number
   created_at: string
   updated_at: string
 }
