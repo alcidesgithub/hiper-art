@@ -732,6 +732,7 @@ export class ArtGenerator {
   }
 
   // Novo método para desenhar preço complexo (Stack Cents)
+  // Novo método para desenhar preço complexo (Stack Cents)
   private drawComplexPrice(centerX: number, currentY: number, price: string | number, fontSize: number, color: string) {
     // 1. Format parts
     let priceStr = ""
@@ -743,14 +744,16 @@ export class ArtGenerator {
 
     const parts = priceStr.split(",")
     const integerPart = parts[0]
-    // Centavos com vírgula antes (Ex: ",90")
-    const centsWithComma = "," + (parts.length > 1 ? parts[1] : "00")
+    // Unificar vírgula e centavos em um único bloco visual (Ex: ",90")
+    // Isso garante que a vírgula fique elevada junto com os centavos
+    const centsRaw = parts.length > 1 ? parts[1] : "00"
+    const centsBlock = "," + centsRaw
 
     // 2. Configure Sizes
     const symbolSize = fontSize * 0.4
     const integerSize = fontSize
-    const decimalSize = fontSize * 0.45 // Tamanho dos centavos e da vírgula
-    const suffixSize = fontSize * 0.3 // Tamanho do "cada"
+    const decimalSize = fontSize * 0.45 // Tamanho do bloco ",90"
+    const suffixSize = fontSize * 0.3   // Tamanho do "cada"
 
     // 3. Measure Widths
     this.ctx.font = `bold ${symbolSize}px Arial`
@@ -760,19 +763,28 @@ export class ArtGenerator {
     const integerWidth = this.ctx.measureText(integerPart).width
 
     this.ctx.font = `bold ${decimalSize}px Arial`
-    const centsWidth = this.ctx.measureText(centsWithComma).width
+    const centsBlockWidth = this.ctx.measureText(centsBlock).width
 
     this.ctx.font = `bold ${suffixSize}px Arial`
     const suffixWidth = this.ctx.measureText("cada").width
 
-    const rightColumnWidth = Math.max(centsWidth, suffixWidth)
+    // LÓGICA DE LAYOUT DIREITO (Right Column)
+    // Estrutura: [Comma+Cents] (Elevado)
+    //               [Cada]      (Centralizado sob o bloco acima)
+
+    // Largura da coluna direita é o máximo entre o bloco de centavos e o "cada"
+    const rightColumnWidth = Math.max(centsBlockWidth, suffixWidth)
 
     const padding = fontSize * 0.1
-    const totalWidth = symbolWidth + padding + integerWidth + padding + rightColumnWidth
+    // Total width
+    // [R$] + [gap] + [Integer] + [gap] + [RightColumn]
+    // Aumentamos o gap do integer para a coluna direita para destacar
+    const paddingIntToRight = fontSize * 0.15
+    const totalWidth = symbolWidth + padding + integerWidth + paddingIntToRight + rightColumnWidth
 
     // 4. Draw
     const startX = centerX - (totalWidth / 2)
-    const baselineY = currentY + (integerSize * 0.85) // Linha de base principal
+    const baselineY = currentY + (integerSize * 0.85) // Linha de base principal (do Inteiro e do R$)
 
     this.ctx.fillStyle = color
     this.ctx.textAlign = "left"
@@ -788,26 +800,32 @@ export class ArtGenerator {
     // Integer - Baseline aligned
     this.ctx.font = `bold ${integerSize}px Arial`
     this.ctx.fillText(integerPart, currentX, baselineY)
-    currentX += integerWidth + padding
+    currentX += integerWidth + paddingIntToRight
 
-    // Right Column
+    // Right Column Start
     const columnStartX = currentX
 
-    // Centavos com vírgula (Ex: ",90") - Top aligned
-    // Centralizar na largura da coluna
-    const centsStartX = columnStartX + (rightColumnWidth - centsWidth) / 2
-    this.ctx.font = `bold ${decimalSize}px Arial`
-    // Alinhar o topo dos centavos com o topo do Inteiro
+    // Centralizar CentsBlock e Cada dentro da largura da coluna direita (rightColumnWidth)
+
+    // Desenhar Bloco Centavos (,90) - ELEVADO (Top Aligned relative to Integer)
+    // Para alinhar o TOPO dos centavos com o TOPO do inteiro:
+    // O topo do inteiro é aproximadamente 'currentY'.
+    // A baseline dos centavos deve ser currentY + ascent(decimalSize).
+    // Aproximação segura: currentY + (decimalSize * 0.85)
+
+    const centsX = columnStartX + (rightColumnWidth - centsBlockWidth) / 2
     const centsBaselineY = currentY + (decimalSize * 0.85)
-    this.ctx.fillText(centsWithComma, centsStartX, centsBaselineY)
 
-    // Bottom Row: "cada" - Base/Bottom (Alinhado com a baseline do Inteiro)
-    // Centralizar "cada" na largura da coluna
-    const suffixStartX = columnStartX + (rightColumnWidth - suffixWidth) / 2
+    this.ctx.font = `bold ${decimalSize}px Arial`
+    this.ctx.fillText(centsBlock, centsX, centsBaselineY)
+
+    // Desenhar Cada (Base) - Alinhado na baseline principal
+    const cadaX = columnStartX + (rightColumnWidth - suffixWidth) / 2
+
     this.ctx.font = `bold ${suffixSize}px Arial`
-    this.ctx.fillText("cada", suffixStartX, baselineY)
+    this.ctx.fillText("cada", cadaX, baselineY)
 
-    console.log("✅ Preço complexo (R$ Base, Comma Base, Cents Top) desenhado:", priceStr)
+    console.log("✅ Preço complexo (Elevated ',90' Block) desenhado:", priceStr)
   }
 
   private validateColor(color: string): string | null {
