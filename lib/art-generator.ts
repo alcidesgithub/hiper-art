@@ -310,7 +310,7 @@ export class ArtGenerator {
 
     // Desenhar título (quebrado a cada duas palavras)
     this.ctx.fillStyle = corTitulo
-    this.ctx.font = `bold ${titleFontSize}px Arial`
+    this.ctx.font = `bold ${titleFontSize}px Montserrat`
     this.ctx.textAlign = "center"
     this.ctx.textBaseline = "top"
 
@@ -328,7 +328,7 @@ export class ArtGenerator {
     // Desenhar descrição (se existir, quebrada a cada duas palavras)
     if (produto.descricao) {
       this.ctx.fillStyle = corDescricao
-      this.ctx.font = `${descriptionFontSize}px Arial`
+      this.ctx.font = `${descriptionFontSize}px Montserrat`
 
       const descriptionLines = this.wrapText(produto.descricao, 900)
       const descLineHeight = descriptionFontSize * 1.2
@@ -402,11 +402,11 @@ export class ArtGenerator {
     const spacingAfterDescription = 45
 
     // Altura dos textos (estimativa)
-    this.ctx.font = `bold ${titleFontSize}px Arial`
+    this.ctx.font = `bold ${titleFontSize}px Montserrat`
     const titleLines = this.wrapText(produto.nome, 900)
     const titleHeight = titleLines.length * titleFontSize * 1.2
 
-    this.ctx.font = `${descriptionFontSize}px Arial`
+    this.ctx.font = `${descriptionFontSize}px Montserrat`
     const descriptionLines = produto.descricao ? this.wrapText(produto.descricao, 900) : []
     const descriptionHeight = descriptionLines.length * descriptionFontSize * 1.2
     const priceHeight = priceFontSize * 1.2
@@ -458,7 +458,7 @@ export class ArtGenerator {
 
     // Desenhar título (quebrado a cada duas palavras)
     this.ctx.fillStyle = corTitulo
-    this.ctx.font = `bold ${titleFontSize}px Arial`
+    this.ctx.font = `bold ${titleFontSize}px Montserrat`
     this.ctx.textAlign = "center"
     this.ctx.textBaseline = "top"
 
@@ -476,7 +476,7 @@ export class ArtGenerator {
     // Desenhar descrição (se existir, quebrada a cada duas palavras)
     if (produto.descricao) {
       this.ctx.fillStyle = corDescricao
-      this.ctx.font = `${descriptionFontSize}px Arial`
+      this.ctx.font = `${descriptionFontSize}px Montserrat`
 
       const descriptionLines = this.wrapText(produto.descricao, 900)
       const descLineHeight = descriptionFontSize * 1.2
@@ -550,11 +550,11 @@ export class ArtGenerator {
     const spacingAfterDescription = 25
 
     // Altura dos textos (estimativa)
-    this.ctx.font = `bold ${titleFontSize}px Arial`
+    this.ctx.font = `bold ${titleFontSize}px Montserrat`
     const titleLines = this.wrapText(produto.nome, 500)
     const titleHeight = titleLines.length * titleFontSize * 1.2
 
-    this.ctx.font = `${descriptionFontSize}px Arial`
+    this.ctx.font = `${descriptionFontSize}px Montserrat`
     const descriptionLines = produto.descricao ? this.wrapText(produto.descricao, 500) : []
     const descriptionHeight = descriptionLines.length * descriptionFontSize * 1.2
     const priceHeight = priceFontSize * 1.2
@@ -756,18 +756,18 @@ export class ArtGenerator {
     const suffixSize = fontSize * 0.20 // Reduzido mais (era 0.25)
 
     // 3. Measure Widths
-    this.ctx.font = `bold ${symbolSize}px Arial`
+    this.ctx.font = `bold ${symbolSize}px Montserrat`
     const symbolWidth = this.ctx.measureText("R$").width
 
-    this.ctx.font = `bold ${integerSize}px Arial`
+    this.ctx.font = `bold ${integerSize}px Montserrat`
     const integerWidth = this.ctx.measureText(integerPart).width
 
-    this.ctx.font = `bold ${decimalSize}px Arial`
+    this.ctx.font = `bold ${decimalSize}px Montserrat`
     const centsBlockWidth = this.ctx.measureText(centsBlock).width
     const commaWidth = this.ctx.measureText(",").width
     const centsDigitsWidth = this.ctx.measureText(centsRaw).width
 
-    this.ctx.font = `bold ${suffixSize}px Arial`
+    this.ctx.font = `bold ${suffixSize}px Montserrat`
     const suffixWidth = this.ctx.measureText("cada").width
 
     // LÓGICA DE LAYOUT DIREITO (Right Column)
@@ -780,8 +780,9 @@ export class ArtGenerator {
     const padding = fontSize * 0.1
     // Total width
     // [R$] + [gap] + [Integer] + [gap] + [RightColumn]
-    // Gap BEM APERTADO entre integer e bloco da direita, como na imagem
-    const paddingIntToRight = fontSize * 0.05
+    // Gap BEM APERTADO entre integer e bloco da direita. 
+    // Com Montserrat, pode precisar ser negativo para aproximar visualmente.
+    const paddingIntToRight = fontSize * -0.05
     const totalWidth = symbolWidth + padding + integerWidth + paddingIntToRight + rightColumnWidth
 
     // 4. Draw
@@ -818,7 +819,7 @@ export class ArtGenerator {
     const centsX = columnStartX + (rightColumnWidth - centsBlockWidth) / 2
     const centsBaselineY = currentY + (decimalSize * 0.85)
 
-    this.ctx.font = `bold ${decimalSize}px Arial`
+    this.ctx.font = `bold ${decimalSize}px Montserrat`
     this.ctx.fillText(centsBlock, centsX, centsBaselineY)
 
     // Desenhar Cada (Base) - Centralizado nos DÍGITOS dos centavos (ignorando a vírgula)
@@ -830,7 +831,7 @@ export class ArtGenerator {
     // Posicionar "cada" um pouco mais abaixo (1.1x o tamanho da fonte abaixo da baseline dos centavos)
     const cadaBaselineY = centsBaselineY + suffixSize * 1.1
 
-    this.ctx.font = `bold ${suffixSize}px Arial`
+    this.ctx.font = `bold ${suffixSize}px Montserrat`
     this.ctx.fillText("cada", cadaX, cadaBaselineY)
 
     console.log("✅ Preço complexo (Elevated ',90' Block) desenhado:", priceStr)
