@@ -752,8 +752,8 @@ export class ArtGenerator {
     // 2. Configure Sizes
     const symbolSize = fontSize * 0.4
     const integerSize = fontSize
-    const decimalSize = fontSize * 0.45 // Tamanho do bloco ",90"
-    const suffixSize = fontSize * 0.3   // Tamanho do "cada"
+    const decimalSize = fontSize * 0.55 // Aumentado para 55%
+    const suffixSize = fontSize * 0.20 // Reduzido mais (era 0.25)
 
     // 3. Measure Widths
     this.ctx.font = `bold ${symbolSize}px Arial`
@@ -764,6 +764,8 @@ export class ArtGenerator {
 
     this.ctx.font = `bold ${decimalSize}px Arial`
     const centsBlockWidth = this.ctx.measureText(centsBlock).width
+    const commaWidth = this.ctx.measureText(",").width
+    const centsDigitsWidth = this.ctx.measureText(centsRaw).width
 
     this.ctx.font = `bold ${suffixSize}px Arial`
     const suffixWidth = this.ctx.measureText("cada").width
@@ -778,8 +780,8 @@ export class ArtGenerator {
     const padding = fontSize * 0.1
     // Total width
     // [R$] + [gap] + [Integer] + [gap] + [RightColumn]
-    // Aumentamos o gap do integer para a coluna direita para destacar
-    const paddingIntToRight = fontSize * 0.15
+    // Gap BEM APERTADO entre integer e bloco da direita, como na imagem
+    const paddingIntToRight = fontSize * 0.05
     const totalWidth = symbolWidth + padding + integerWidth + paddingIntToRight + rightColumnWidth
 
     // 4. Draw
@@ -819,11 +821,17 @@ export class ArtGenerator {
     this.ctx.font = `bold ${decimalSize}px Arial`
     this.ctx.fillText(centsBlock, centsX, centsBaselineY)
 
-    // Desenhar Cada (Base) - Alinhado na baseline principal
-    const cadaX = columnStartX + (rightColumnWidth - suffixWidth) / 2
+    // Desenhar Cada (Base) - Centralizado nos DÍGITOS dos centavos (ignorando a vírgula)
+    // CenterX dos dígitos = centsX + commaWidth + (centsDigitsWidth / 2)
+    // CadaX = CenterX - (suffixWidth / 2)
+    const centsDigitsCenterX = centsX + commaWidth + (centsDigitsWidth / 2)
+    const cadaX = centsDigitsCenterX - (suffixWidth / 2)
+
+    // Posicionar "cada" um pouco mais abaixo (1.1x o tamanho da fonte abaixo da baseline dos centavos)
+    const cadaBaselineY = centsBaselineY + suffixSize * 1.1
 
     this.ctx.font = `bold ${suffixSize}px Arial`
-    this.ctx.fillText("cada", cadaX, baselineY)
+    this.ctx.fillText("cada", cadaX, cadaBaselineY)
 
     console.log("✅ Preço complexo (Elevated ',90' Block) desenhado:", priceStr)
   }
